@@ -190,7 +190,7 @@ app.post("/api/ai/notify-event", async (req, res) => {
             ATENÇÃO: Retorne estritamente um código JSON válido contendo exatamente as chaves "subject" (uma string) e "htmlBody" (o corpo do e-mail em HTML limpo, bem estilizado inline). NÃO retorne markdown ao redor ou fora do objeto JSON.`;
 
             const response = await ai.models.generateContent({
-              model: "gemini-3.5-flash",
+              model: "gemini-1.5-flash",
               contents: prompt,
               config: {
                 responseMimeType: "application/json",
