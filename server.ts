@@ -17,20 +17,27 @@ const getMailTransporter = () => {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
+  console.log("[SMTP Check] Variables:", { 
+    host: !!host, 
+    user: !!user, 
+    pass: !!pass, 
+    port: port 
+  });
+
   if (!host || !user || !pass) {
+    console.warn("[SMTP] Missing configuration. Emails will be simulated.");
     return null;
   }
 
   return nodemailer.createTransport({
     host,
-    port: Number(port || 587),
+    port: Number(port || 465),
     secure: port === "465",
     auth: {
       user,
       pass,
     },
     tls: {
-      // Allow self-signed or standard certificates common on private school servers
       rejectUnauthorized: false
     }
   });
