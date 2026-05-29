@@ -160,10 +160,10 @@ export default function AiNotificationHub({ events, sectorEmails }: AiNotificati
     }
 
     // Check backend API status
-    fetch('/api/health')
+    fetch('/api/status')
       .then(r => r.json())
       .then(data => {
-        setApiStatusChecked(data.api_key_configured);
+        setApiStatusChecked(data.ai_config);
       })
       .catch(() => setApiStatusChecked(false));
   }, [events]);
@@ -197,10 +197,13 @@ export default function AiNotificationHub({ events, sectorEmails }: AiNotificati
     setSuccessMess('');
 
     try {
-      const response = await fetch('/api/ai/notify-event', {
+      const response = await fetch('/api/dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: eventToNotify, sectorEmails: sectorEmails })
+        body: JSON.stringify({ 
+          event: eventToNotify, 
+          recipient: 'esribeirojunior@gmail.com' 
+        })
       });
 
       if (!response.ok) {

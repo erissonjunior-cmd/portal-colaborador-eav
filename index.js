@@ -66,7 +66,21 @@ app.post('/api/dispatch', async (req, res) => {
     });
 
     log("Envio concluído com sucesso!");
-    res.json({ success: true, message: "E-mail entregue." });
+    res.json({ 
+      success: true, 
+      notifications: [{
+        id: `mail-${Date.now()}`,
+        eventId: event?.id,
+        eventTitle: event?.title,
+        recipientEmail: recipient || 'esribeirojunior@gmail.com',
+        recipientSector: 'TI/Operacional',
+        status: 'success',
+        sentAt: new Date().toISOString(),
+        htmlBody: finalHtml,
+        subject: `[EAV] Notificação: ${event?.title || 'Assunto Geral'}`,
+        isSimulated: false
+      }]
+    });
 
   } catch (error) {
     log(`ERRO FATAL: ${error.message}`);
