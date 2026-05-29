@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import * as genai from "@google/genai";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
@@ -10,61 +9,37 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-// Configuração de transporte ultra-segura
-const getMailTransporter = () => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  return nodemailer.createTransport({
-    service: 'gmail', // Facilita a configuração para contas Gmail comuns
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
-};
-
 app.use(express.json());
 
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", ai: !!process.env.GEMINI_API_KEY });
+});
+
 app.post("/api/ai/notify-event", async (req, res) => {
-  console.log("[API] Iniciando processo de notificação...");
+  console.log("[TESTE] Recebi pedido de e-mail!");
   const { event } = req.body;
-  const aiKey = process.env.GEMINI_API_KEY;
   
   try {
-    const transporter = getMailTransporter();
-    let emailHtml = `<h2>Evento EAV: ${event?.title}</h2><p>Agendado para ${event?.date}.</p>`;
-
-    // Tentar IA com proteção
-    if (aiKey) {
-      try {
-        console.log("[AI] Solicitando texto...");
-        const client = new genai.GoogleGenAI({ apiKey: aiKey });
-        // Chamada síncrona do modelo para evitar pendências
-        const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent("Escreva um aviso curto de evento escolar.");
-        const response = await result.response;
-        emailHtml = response.text() || emailHtml;
-      } catch (aiErr) {
-        console.error("[AI Error]", aiErr);
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
       }
-    }
+    });
 
-    // Envio de e-mail com Promise e Timeout
-    if (transporter) {
-      console.log("[SMTP] Enviando e-mail real...");
-      await transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: "esribeirojunior@gmail.com",
-        subject: `[TESTE EAV] ${event?.title || 'Notificação'}`,
-        html: emailHtml
-      });
-      console.log("[SMTP] Enviado!");
-    } else {
-      console.warn("[SMTP] Transporter não configurado.");
-    }
+    console.log("[TESTE] Enviando...");
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: "esribeirojunior@gmail.com",
+      subject: `[PRODUÇÃO] Evento: ${event?.title || 'Teste'}`,
+      html: `<h1>Teste de Envio Real</h1><p>Se você está lendo isso, o servidor do Render está conseguindo enviar e-mails!</p>`
+    });
 
-    res.json({ success: true, message: "E-mail enviado!" });
+    console.log("[TESTE] Sucesso!");
+    res.json({ success: true, message: "E-mail enviado com sucesso!" });
   } catch (err) {
-    console.error("[Fatal Error]", err);
+    console.error("[ERRO TESTE]", err);
     res.status(500).json({ error: (err as Error).message });
   }
 });
