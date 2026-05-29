@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 const getMailTransporter = () => {
   const host = process.env.SMTP_HOST;
@@ -17,8 +17,8 @@ const getMailTransporter = () => {
   if (!host || !user || !pass) return null;
   return nodemailer.createTransport({
     host,
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: process.env.SMTP_PORT === "465",
+    port: 587,
+    secure: false,
     auth: { user, pass },
     tls: { rejectUnauthorized: false }
   });
@@ -37,13 +37,12 @@ app.post("/api/ai/notify-event", async (req, res) => {
 
   try {
     const transporter = getMailTransporter();
-    
-    // AI Content generation
     let emailHtml = `<p>Notificação de Evento EAV: ${event?.title}</p>`;
+    
     if (aiKey) {
       try {
         const client = new genai.GoogleGenAI({ apiKey: aiKey });
-        const model = client.models.get("gemini-1.5-flash");
+        const model = await client.models.get("gemini-1.5-flash");
         const result = await model.generateContent({
           contents: [{ role: "user", parts: [{ text: `Escreva um e-mail sobre o evento ${event?.title}. Retorne HTML.` }] }]
         });
@@ -53,7 +52,6 @@ app.post("/api/ai/notify-event", async (req, res) => {
       }
     }
 
-    // Attempt to send
     if (transporter && event) {
       try {
         await transporter.sendMail({
@@ -62,7 +60,7 @@ app.post("/api/ai/notify-event", async (req, res) => {
           subject: `[EAV] ${event.title}`,
           html: emailHtml
         });
-        results.push({ status: "sent", to: "esribeirojunior@gmail.com" });
+        results.push({ status: "sent" });
       } catch (err) {
         console.error("Mail Error:", err);
       }
@@ -70,7 +68,7 @@ app.post("/api/ai/notify-event", async (req, res) => {
 
     res.json({ success: true, notifications: results });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -82,7 +80,7 @@ async function startServer() {
     app.use(express.static(path.join(process.cwd(), "dist")));
     app.get("*", (req, res) => res.sendFile(path.join(process.cwd(), "dist", "index.html")));
   }
-  app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+  app.listen(PORT, "0.0.0.0", () => console.log(`Server on port ${PORT}`));
 }
 
 startServer();
