@@ -39,13 +39,14 @@ app.post('/api/dispatch', async (req, res) => {
     if (process.env.GEMINI_API_KEY) {
       try {
         log("Solicitando IA...");
-        const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const model = genAI.models.get("gemini-1.5-flash");
+        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Escreva um e-mail formal e elegante sobre o evento "${event?.title}" para ser enviado pela Escola Americana. Use HTML inline elegante.`;
-        const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] });
-        finalHtml = result.text || finalHtml;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        finalHtml = response.text() || finalHtml;
       } catch (aiErr) {
-        log("IA falhou, usando template padrão.");
+        log(`IA falhou: ${aiErr.message}. Usando template padrão.`);
       }
     }
 
