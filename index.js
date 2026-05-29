@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import fetch from 'node-fetch'; // Usando fetch direto para evitar erros de SDK
 
 dotenv.config();
 
