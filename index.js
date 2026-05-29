@@ -75,7 +75,7 @@ app.post('/api/dispatch', async (req, res) => {
 
   } catch (error) {
     log(`ERRO: ${error.message}`);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: `Falha no Servidor: ${error.message}` });
   }
 });
 

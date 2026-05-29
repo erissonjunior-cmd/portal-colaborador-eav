@@ -229,7 +229,7 @@ export default function AiNotificationHub({ events, sectorEmails }: AiNotificati
         throw new Error(responseData.error || "Ocorreu uma falha inexplicável no orquestrador de IA.");
       }
     } catch (err: any) {
-      setErrorMess(err.message || "Erro desconhecido ao chamar a API.");
+      setErrorMess(`Erro Técnico: ${err.message || 'Falha na resposta do servidor'}`);
     } finally {
       setIsProcessing(false);
     }
