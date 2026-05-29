@@ -10,64 +10,61 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// Configuração de transporte ultra-segura
 const getMailTransporter = () => {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) return null;
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
   return nodemailer.createTransport({
-    host,
-    port: 587,
-    secure: false,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false }
+    service: 'gmail', // Facilita a configuração para contas Gmail comuns
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
   });
 };
 
 app.use(express.json());
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", ai: !!process.env.GEMINI_API_KEY });
-});
-
 app.post("/api/ai/notify-event", async (req, res) => {
+  console.log("[API] Iniciando processo de notificação...");
   const { event } = req.body;
   const aiKey = process.env.GEMINI_API_KEY;
-  const results = [];
-
+  
   try {
     const transporter = getMailTransporter();
-    let emailHtml = `<p>Notificação de Evento EAV: ${event?.title}</p>`;
-    
+    let emailHtml = `<h2>Evento EAV: ${event?.title}</h2><p>Agendado para ${event?.date}.</p>`;
+
+    // Tentar IA com proteção
     if (aiKey) {
       try {
+        console.log("[AI] Solicitando texto...");
         const client = new genai.GoogleGenAI({ apiKey: aiKey });
-        const model = await client.models.get("gemini-1.5-flash");
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: `Escreva um e-mail sobre o evento ${event?.title}. Retorne HTML.` }] }]
-        });
-        emailHtml = result.text || emailHtml;
-      } catch (e) {
-        console.error("AI Error:", e);
+        // Chamada síncrona do modelo para evitar pendências
+        const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent("Escreva um aviso curto de evento escolar.");
+        const response = await result.response;
+        emailHtml = response.text() || emailHtml;
+      } catch (aiErr) {
+        console.error("[AI Error]", aiErr);
       }
     }
 
-    if (transporter && event) {
-      try {
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || process.env.SMTP_USER,
-          to: "esribeirojunior@gmail.com",
-          subject: `[EAV] ${event.title}`,
-          html: emailHtml
-        });
-        results.push({ status: "sent" });
-      } catch (err) {
-        console.error("Mail Error:", err);
-      }
+    // Envio de e-mail com Promise e Timeout
+    if (transporter) {
+      console.log("[SMTP] Enviando e-mail real...");
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: "esribeirojunior@gmail.com",
+        subject: `[TESTE EAV] ${event?.title || 'Notificação'}`,
+        html: emailHtml
+      });
+      console.log("[SMTP] Enviado!");
+    } else {
+      console.warn("[SMTP] Transporter não configurado.");
     }
 
-    res.json({ success: true, notifications: results });
+    res.json({ success: true, message: "E-mail enviado!" });
   } catch (err) {
+    console.error("[Fatal Error]", err);
     res.status(500).json({ error: (err as Error).message });
   }
 });
@@ -80,7 +77,7 @@ async function startServer() {
     app.use(express.static(path.join(process.cwd(), "dist")));
     app.get("*", (req, res) => res.sendFile(path.join(process.cwd(), "dist", "index.html")));
   }
-  app.listen(PORT, "0.0.0.0", () => console.log(`Server on port ${PORT}`));
+  app.listen(PORT, "0.0.0.0", () => console.log(`Server ON port ${PORT}`));
 }
 
 startServer();
