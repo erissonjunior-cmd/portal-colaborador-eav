@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Spectral", Georgia, Cambria, "Times New Roman", Times, serif;
+  --color-brand-blue: #0F1D3A; /* Elegant Deep Navy Blue from EAV logo */
+  --color-brand-orange: #A31E32; /* Crimson Red / Bordeaux from EAV logo */
+  --color-brand-green: #10B981; /* Fresh green for approved status */
+  --color-brand-black: #1E293B; /* Slate/charcoal text color */
+  --color-brand-cream: #FAF9F6; /* Premium alabaster/cream page base */
+  --color-brand-cream-dark: #E6E1DA; /* Premium soft beige border */
+  --font-be-vietnam: "Be Vietnam Pro", sans-serif;
+  --font-spectral: "Spectral", serif;
+}
+
+body {
+  background-color: #FAF9F6 !important;
+  color: #1E293B !important;
+}
+
+/* Rounded component card styles to fit the beautiful natural tones */
+.rounded-lg {
+  border-radius: 1.5rem !important; /* 24px */
+}
+
+.rounded-md {
+  border-radius: 1rem !important; /* 16px */
+}
+
+/* Subtle, soft natural border replacements */
+.border-gray-100 {
+  border-color: #E5E1DA !important;
+}
+.border-gray-150 {
+  border-color: #E5E1DA !important;
+}
+.border-gray-200 {
+  border-color: #E5E1DA !important;
+}
+.border-gray-300 {
+  border-color: #D4D9C8 !important;
+}
+.border-neutral-100 {
+  border-color: #E5E1DA !important;
+}
+
+/* Custom selection styling */
+::selection {
+  background-color: rgba(62, 92, 82, 0.15);
+  color: #3E5C52;
+}

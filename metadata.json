@@ -1,0 +1,6 @@
+{
+  "name": "Portal do Colaborador - EAV",
+  "description": "Portal de planejamento de eventos e solicitação de suporte para colaboradores da Escola Americana de Vitória.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
