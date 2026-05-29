@@ -2,8 +2,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
-import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
+import fetch from 'node-fetch'; // Usando fetch direto para evitar erros de SDK
 
 dotenv.config();
 
@@ -15,17 +15,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// NOVO: Rota de Status Consolidada
 app.get('/api/status', (req, res) => {
   res.json({
     online: true,
     email_config: !!process.env.SMTP_USER,
-    ai_config: !!process.env.GEMINI_API_KEY,
-    environment: process.env.NODE_ENV || 'production'
+    ai_config: !!process.env.GEMINI_API_KEY
   });
 });
 
-// NOVO: Motor de Disparo Reformulado
 app.post('/api/dispatch', async (req, res) => {
   const { event, recipient } = req.body;
   const log = (msg) => console.log(`[DISPATCH] ${msg}`);
@@ -33,24 +30,32 @@ app.post('/api/dispatch', async (req, res) => {
   try {
     log(`Iniciando fluxo para: ${recipient || 'esribeirojunior@gmail.com'}`);
 
-    // 1. Geração de Conteúdo via IA (Se disponível)
     let finalHtml = `<h2>${event?.title || 'Comunicado Escolar'}</h2><p>Agendado para: ${event?.date}</p>`;
     
+    // CHAMADA DIRETA AO GOOGLE (Sem SDK travando)
     if (process.env.GEMINI_API_KEY) {
       try {
-        log("Solicitando IA...");
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Escreva um e-mail formal e elegante sobre o evento "${event?.title}" para ser enviado pela Escola Americana. Use HTML inline elegante.`;
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        finalHtml = response.text() || finalHtml;
+        log("Solicitando IA via API Direta...");
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `Escreva um e-mail formal sobre o evento "${event?.title}". Retorne apenas o corpo em HTML.` }] }]
+          })
+        });
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          finalHtml = data.candidates[0].content.parts[0].text;
+          log("IA respondeu com sucesso!");
+        }
       } catch (aiErr) {
-        log(`IA falhou: ${aiErr.message}. Usando template padrão.`);
+        log(`IA Direct falhou: ${aiErr.message}`);
       }
     }
 
-    // 2. Conexão e Envio via SMTP
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -62,38 +67,23 @@ app.post('/api/dispatch', async (req, res) => {
     await transporter.sendMail({
       from: `"Portal EAV" <${process.env.SMTP_USER}>`,
       to: recipient || 'esribeirojunior@gmail.com',
-      subject: `[EAV] Notificação: ${event?.title || 'Assunto Geral'}`,
+      subject: `[EAV] Notificação: ${event?.title || 'Comunicado'}`,
       html: finalHtml
     });
 
-    log("Envio concluído com sucesso!");
-    res.json({ 
-      success: true, 
-      notifications: [{
-        id: `mail-${Date.now()}`,
-        eventId: event?.id,
-        eventTitle: event?.title,
-        recipientEmail: recipient || 'esribeirojunior@gmail.com',
-        recipientSector: 'TI/Operacional',
-        status: 'success',
-        sentAt: new Date().toISOString(),
-        htmlBody: finalHtml,
-        subject: `[EAV] Notificação: ${event?.title || 'Assunto Geral'}`,
-        isSimulated: false
-      }]
-    });
+    log("Envio concluído!");
+    res.json({ success: true, notifications: [{ id: `m-${Date.now()}`, status: 'success', eventTitle: event?.title, sentAt: new Date().toISOString(), htmlBody: finalHtml, recipientEmail: recipient || 'esribeirojunior@gmail.com', subject: `[EAV] Notificação: ${event?.title}`, isSimulated: false, recipientSector: 'Geral' }] });
 
   } catch (error) {
-    log(`ERRO FATAL: ${error.message}`);
+    log(`ERRO: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Serve frontend para qualquer outra rota
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 NOVO HUB EAV ONLINE NA PORTA ${PORT}`);
+  console.log(`🚀 HUB EAV ONLINE NA PORTA ${PORT}`);
 });
